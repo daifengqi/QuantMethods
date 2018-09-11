@@ -24,14 +24,14 @@ pv = 2*pnorm(tst)                # 计算建设检验的p值
 # Differencing ----------------------------------
 n=100
 t=1:n
-x=5-2*t+3*t^2-4*t^3+10*rnorm(n)
-d1=diff(x)
+x=5-2*t+3*t^2-4*t^3+10*rnorm(n) # 产生时序数据
+d1=diff(x) # 做五次差分
 d2=diff(d1)
 d3=diff(d2)
 d4=diff(d3)
 d5=diff(d4)
 par(mfrow=c(2,3)) # 创建画布
-ts.plot(x)
+ts.plot(x) # 画5+1张图
 ts.plot(d1)
 ts.plot(d2)
 ts.plot(d3)
