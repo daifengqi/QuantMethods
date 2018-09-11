@@ -1,6 +1,7 @@
 setwd('D:\\R/data')
 library(fBasics) # 程序包：Rmetrics
 
+# Intriduction ----------------------------------
 dat <- read.table('m-ibm-6815.txt', header = T)
 head(dat)    # 前6行展示
 dim(dat)     # 数据维度
@@ -19,3 +20,20 @@ normalTest(lnibm, method = 'jb') # 假设检验，JB统计量
 s3 = skewness(lnibm)             # 峰度
 tst = s3/sqrt(6/nrow(dat))       # 计算t统计量
 pv = 2*pnorm(tst)                # 计算建设检验的p值
+
+# Differencing ----------------------------------
+n=100
+t=1:n
+x=5-2*t+3*t^2-4*t^3+10*rnorm(n)
+d1=diff(x)
+d2=diff(d1)
+d3=diff(d2)
+d4=diff(d3)
+d5=diff(d4)
+par(mfrow=c(2,3)) # 创建画布
+ts.plot(x)
+ts.plot(d1)
+ts.plot(d2)
+ts.plot(d3)
+ts.plot(d4)
+ts.plot(d5)
