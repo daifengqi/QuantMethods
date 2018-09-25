@@ -21,6 +21,6 @@ ts.plot(m3$residuals)
 
 # 检验残差是否是白噪声
 Box.test(m3$residuals, lag=12, type='Ljung') 
-# 手动调整 自由度=9
+# 手动调整 自由度 = 12 - 3 = 9
 pv <- 1-pchisq(16.352,9) # 卡方分布的p值pchisq()
 pv
