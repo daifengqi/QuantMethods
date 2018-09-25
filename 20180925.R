@@ -1,11 +1,11 @@
 setwd("C:/Users/internet/Documents/GitHub/QuantitativeMethods/data")
 
-
-dat <- read.table('m-ibm3dx2608.txt', header = T) # 读入数据
+# 获取数据
+dat <- read.table('m-ibm3dx2608.txt', header = T) # 读入文档
 sibm <- dat[,2] # 取return
 ts.plot(sibm) # 做时间序列图
 
-# ACF & PACF
+# plot ACF & PACF
 acf(sibm)
 pacf(sibm)
 
