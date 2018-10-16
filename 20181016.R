@@ -32,4 +32,21 @@ predict(m1, 5)
 # ~ garch(1,1) 第二个数字改成1就可以
 
 
-dat <- read.table('data/sp500.txt', header = T)
+#dat <- read.table('data/sp500.txt', header = T)
+sp5 <- scan(file = 'data/sp500.txt')
+# scan()读进来是个numeric向量
+ts.plot(sp5)
+
+# 与之前一样，看有没有GARCH效应
+m1 <- garchFit(~arma(3,0) + garch(1,1), data = sp5,
+               trace = F)
+# 拟合一个arma型模型
+
+stresi <- residuals(m1, standardize = T)
+ts.plot(stresi)
+Box.test(stresi, lag = 10,
+         type = 'Ljung')
+m1 <- garchFit(~garch(1,1), data = sp5,
+               trace = F)
+# 预测
+predict(m1, 5)
