@@ -24,4 +24,12 @@ summary(m2)
 m3 <- garchFit(intc~garch(3,0), data=intc,trace = F)
 summary(m3)
 
+# 预测
+predict(m1, 5)
+# 关心方差（标准差）
 
+# ARCH模型升级版：GARCH模型
+# ~ garch(1,1) 第二个数字改成1就可以
+
+
+dat <- read.table('data/sp500.txt', header = T)
