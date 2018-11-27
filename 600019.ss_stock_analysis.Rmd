@@ -1,0 +1,135 @@
+---
+title: "宝钢股份(600019.ss)股票量化分析"
+author: "Cesc"
+date: "2018/11/04"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+在此次量化分析中使用到的程序包以及概况如下：
+```{r, warning=FALSE, results='hide'}
+library(quantmod) # 程序包：股票量化
+library(tseries)  # 程序包：时序分析
+library(fGarch)   # 程序包: GARCH模型
+library(nnet)     # 程序包：神经网络
+```
+
+
+## 数据获取与探查
+首先，通过quantmod包中的函数获取股票数据。我们选择宝钢股份(600019.ss)的收盘价作为指标，时间区间为2018/09/03到2018/11/02。如下是该时间内股票价格变化的K线图。
+```{r}
+setSymbolLookup(BG=list(name='600019.ss',src='yahoo',from="2018-09-03", to='2018-11-2'))
+getSymbols("BG")
+chartSeries(BG, theme = chartTheme("white"))
+```
+
+
+由公式Rt=Ln(Pt/Pt-1)，我们得到股票的对数收益率。以下是股票对数收益率的时间序列图。
+```{r}
+bg <- as.data.frame(BG)
+bgprice <- bg[,4]
+rt <- log(bgprice[2:nrow(bg)]/bgprice[1:(nrow(bg)-1)])
+ts.plot(rt, ylab='Log Eeturn', main='Series of Log Return')
+
+basicStats(rt)     # 显示基本统计量
+mean(rt)           # 均值
+t.test(rt)         # 假设检验
+normalTest(rt, method = 'jb') # 假设检验，JB统计量
+skewness(rt)       # 峰度
+```
+
+
+我们对收益率数据进行基本的探查，可以得到以下信息：我们共使用了39天的收盘价数据；收益率最大时达到4.86%，最低时是-6.31%，收益率的均值为0.02%左右。根据假设检验的结果可知，收益率的值都在0左右，并且不服从正态分布。收益率的峰度约为-0.49。
+
+
+## 自相关性检验
+对收益率序列做ACF和PACF图，结果如下。
+```{r}
+acf(rt, main = 'Series of Return') 
+pacf(rt, main = 'Series of Return')
+```
+根据ACF图，可以看出序列可能具有3阶相关性；根据PACF的结果，序列具有1-3阶相关性的可能较大。我们选择滞后期数为1、2和3分别做Box检验。
+
+
+```{r}
+Box.test(rt, lag = 1, type = 'Ljung')
+Box.test(rt, lag = 2, type = 'Ljung')
+Box.test(rt, lag = 3, type = 'Ljung')
+```
+根据Box检验的结果，在滞后期选择分别为1阶、2阶和3阶时，p值分别为0.06、0.11和0.02。在lag=3时，可以在5%的水平下拒绝原假设，认为序列具有自相关性。我们选择滞后阶数为lag=3建立模型。
+
+
+## 自回归模型
+首先建立AR(3)模型。
+```{r}
+AR <- arima(rt, order = c(3,0,0)) # 拟合AR(3)模型
+AR
+```
+由上我们可以得出AR模型的形式为：rt=-0.2821rt-1-0.1567rt-2+0.2526rt-3（这里记得用公式编辑器改一下）。AIC的值为-166.74。
+
+
+```{r}
+e <- AR$residuals
+Box.test(e, lag=12, type='Ljung')
+RSS <- sum(e^2)
+TSS <- sum((rt-mean(rt))^2)
+rsquare <- 1-RSS/TSS
+rsquare
+```
+由Box检验的结果，AR模型的残差在12阶之内都没有相关性，可认为是白噪声。可决系数R方的值为20.03%，拟合不够充分。
+
+
+
+## 波动率模型
+```{r}
+at <- rt - mean(rt)
+acf(at^2, main = 'Series of Return') 
+pacf(at^2, main = 'Series of Return')
+Box.test(at^2, lag = 12, type = 'Ljung')
+```
+根据ACF和PACF，以及Box检验的结果，股票的波动率没有相关性，因此无法建立ARCH及其衍生的模型。
+
+
+## 非参数方法：局部最小二乘
+```{r}
+x <- rt[1:(length(rt)-1)]
+y <- rt[2:length(rt)] - rt[1:(length(rt)-1)]
+par(mfrow=c(2,2))
+plot(x, y, pch = '*', xlab = 'x(t-1)', ylab = 'y(t)')
+lines(lowess(x,y))
+title(main = '(a) y(t) v.s. x(t-1)')
+plot(x, abs(y), pch = '*', xlab = 'x(t-1)', ylab = 'abs(y)')
+lines(lowess(x,abs(y)))
+title(main = '(c) abs(y) v.s. x(t-1)')
+fit <- lowess(x,y)
+plot(fit$x, fit$y, type = 'l', xlab = 'x(t-1)', ylab = 'mu')
+title(main = '(b) mu(.) v.s. x(t-1)')
+fit2 <- lowess(x,abs(y))
+plot(fit2$x, fit2$y, type = 'l', xlab = 'x(t-1)', ylab = 'sigma')
+title(main = '(d) sigma(.) v.s. x(t-1)')
+```
+上图是使用局部最小二乘方法的结果。从图像可以得出，当期收益率较低时，下一期收益率的期望会较高；当期收益率较高时，下一期收益率的期望会较低。另一方面，当收益率在0左右时，波动率会比较低；当收益率的绝对值增大时，波动率会随之提升。
+
+
+## 神经网络
+```{r}
+y <- rt[3:38]
+train_x <- cbind(rt[2:37], rt[1:36])
+nn <- nnet(train_x, y, size=2, linout = T, skip =T,
+              maxit = 10000, decay = 0, abstol=1e-7, rang=0.1)
+# 训练集结果的好坏
+sse <- sum((y - predict(nn, train_x))^2)
+sse
+```
+
+
+我们接着训练一个神经网络来拟合模型。该神经网络有两个节点，输出为线性，输入层与输出层相互连接，权重衰减速率为0.9，最小容忍残差为1e-7，初始权重的取值范围为[-0.1, 0.1]。训练的结果表面，预测值与真实值的残差平方和为0.021。
+```{r}
+summary(nn)
+```
+
+
+该神经网络的权重如下：从输入层到隐藏层节点一，参数为（包括截距项）0.09,0.07,-0.01,，从输入层到隐藏层节点二，参数为0.05,0.01,-0.02，从隐藏层到输出层的参数为0.08,-0.08，从输入层到输出层的参数为0,-0.35,-0.25。
