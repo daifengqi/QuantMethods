@@ -1,7 +1,7 @@
 setwd("D:/QuantMethods/data")
 x <- read.table('m-fac9003.txt', header = T) #前13列是股票，最后一列是市场
 
-### 因子分析(单因子模型)
+### 多元回归
 # 自变量
 xmtx <- cbind(rep(1,168), x[,14]) # 添加一列截距项
 # 因变量(多元)
